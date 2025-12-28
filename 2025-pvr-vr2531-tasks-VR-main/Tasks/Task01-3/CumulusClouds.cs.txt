@@ -1,0 +1,10 @@
+using UnityEngine;
+
+public class CumulusClouds : CloudBase
+{
+    protected override void Start()
+    {
+        base.Start();
+        mat.color = new Color(1f, 1f, 1f, 0.8f);
+    }
+}

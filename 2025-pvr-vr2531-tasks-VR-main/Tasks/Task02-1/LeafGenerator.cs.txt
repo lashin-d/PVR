@@ -1,0 +1,44 @@
+using UnityEngine;
+
+public static class LeafGenerator
+{
+    public static Mesh CreateLeafMesh(float width = 0.2f, float height = 0.3f)
+    {
+        Mesh m = new Mesh();
+        Vector3[] verts = new Vector3[4]
+        {
+            new Vector3(-width*0.5f, 0f, 0f),
+            new Vector3(width*0.5f, 0f, 0f),
+            new Vector3(-width*0.5f, height, 0f),
+            new Vector3(width*0.5f, height, 0f)
+        };
+        int[] tris = new int[6] { 0, 2, 1, 1, 2, 3 };
+        Vector3[] normals = new Vector3[4] { Vector3.forward, Vector3.forward, Vector3.forward, Vector3.forward };
+        Vector2[] uv = new Vector2[4] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) };
+
+        m.vertices = verts;
+        m.triangles = tris;
+        m.normals = normals;
+        m.uv = uv;
+        m.RecalculateBounds();
+        return m;
+    }
+    public static GameObject CreateLeafObject(Vector3 position, Quaternion rotation, Transform parent, Material mat, float size = 0.25f)
+    {
+        GameObject go = new GameObject("Leaf");
+
+        go.transform.SetParent(parent, false);
+        go.transform.localPosition = position;
+        go.transform.localRotation = rotation;
+        go.transform.localScale = Vector3.one * size;
+
+        var mf = go.AddComponent<MeshFilter>();
+        mf.mesh = CreateLeafMesh(1f, 1.2f);
+
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = mat;
+
+        return go;
+    }
+
+}

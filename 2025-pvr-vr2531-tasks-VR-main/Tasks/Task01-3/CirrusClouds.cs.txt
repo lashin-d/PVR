@@ -1,0 +1,11 @@
+using UnityEngine;
+
+public class CirrusClouds : CloudBase
+{
+    protected override void Start()
+    {
+        base.Start();
+        mat.color = new Color(1f, 1f, 1f, 0.5f);
+        speed *= 2f;
+    }
+}

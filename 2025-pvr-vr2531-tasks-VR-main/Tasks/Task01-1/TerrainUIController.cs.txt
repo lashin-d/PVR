@@ -1,0 +1,48 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class TerrainUIController : MonoBehaviour
+{
+public TerrainGenerator terrain;
+public Slider heightSlider;
+public Slider noiseSlider;
+public Dropdown colorModeDropdown;
+public Toggle wireframeToggle;
+
+void Start()
+{
+// Ініціалізируємо UI за даними значеннями
+heightSlider.value = terrain.heightScale;
+noiseSlider.value = terrain.noiseScale;
+wireframeToggle.isOn = terrain.showWireframe;
+}
+
+public void OnHeightChanged(float value)
+{
+terrain.heightScale = value;
+terrain.Generate();
+}
+
+public void OnNoiseChanged(float value)
+{
+terrain.noiseScale = value;
+terrain.Generate();
+}
+
+public void OnWireframeToggled(bool state)
+{
+terrain.showWireframe = state;
+terrain.Generate();
+}
+
+public void OnColorModeChanged(int index)
+{
+terrain.colorMode = index;
+terrain.Generate();
+}
+
+public void OnRegenerateClicked()
+{
+terrain.Generate();
+}
+}

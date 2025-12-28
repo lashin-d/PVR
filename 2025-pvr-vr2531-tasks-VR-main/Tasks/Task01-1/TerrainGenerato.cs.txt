@@ -1,0 +1,233 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+public class TerrainGenerator : MonoBehaviour
+{
+[Header("Coloring")]
+public int colorMode = 0; // 0 - стандарт, 1 - сніжний, 2 - пустеля
+
+[Header("Grid")]
+public int width = 50;
+public int length = 50;
+public float cellSize = 1f;
+
+[Header("Height (Perlin)")]
+public float heightScale = 5f;
+public float noiseScale = 0.1f;
+public int seed = 0;
+
+[Header("Display")]
+public bool showWireframe = false;
+public Material surfaceMaterial;
+public Material lineMaterial;
+
+Mesh mesh;
+MeshFilter mf;
+MeshRenderer mr;
+GameObject wireframeObj;
+MeshFilter wfFilter;
+MeshRenderer wfRenderer;
+
+void Awake()
+{
+mf = GetComponent<MeshFilter>();
+mr = GetComponent<MeshRenderer>();
+Generate();
+}
+
+[ContextMenu("Generate Terrain")]
+public void Generate()
+{
+Random.InitState(seed);
+if (mf == null) mf = GetComponent<MeshFilter>();
+if (mr == null) mr = GetComponent<MeshRenderer>();
+
+
+mesh = BuildMesh();
+mf.sharedMesh = mesh;
+
+
+if (surfaceMaterial != null)
+mr.sharedMaterial = surfaceMaterial;
+
+
+CreateOrUpdateWireframe(mesh);
+UpdateWireframeVisibility();
+}
+
+Mesh BuildMesh()
+{
+int vertsX = width + 1;
+int vertsZ = length + 1;
+Vector3[] verts = new Vector3[vertsX * vertsZ];
+Color[] colors = new Color[verts.Length];
+Vector2[] uv = new Vector2[verts.Length];
+
+float minY = float.MaxValue;
+float maxY = float.MinValue;
+float offsetX = Random.Range(-10000f, 10000f);
+float offsetZ = Random.Range(-10000f, 10000f);
+
+
+for (int z = 0; z < vertsZ; z++)
+{
+for (int x = 0; x < vertsX; x++)
+{
+float px = x * cellSize;
+float pz = z * cellSize;
+float nx = (px + offsetX) * noiseScale;
+float nz = (pz + offsetZ) * noiseScale;
+float h = Mathf.PerlinNoise(nx, nz);
+float y = (h - 0.5f) * 2f * heightScale;
+int idx = z * vertsX + x;
+verts[idx] = new Vector3(px, y, pz);
+uv[idx] = new Vector2((float)x / width, (float)z / length);
+if (y < minY) minY = y;
+if (y > maxY) maxY = y;
+}
+}
+
+for (int i = 0; i < verts.Length; i++)
+{
+float t = Mathf.InverseLerp(minY, maxY, verts[i].y);
+colors[i] = HeightToGradient(t);
+}
+
+int[] tris = new int[width * length * 6];
+int tIdx = 0;
+for (int z = 0; z < length; z++)
+{
+for (int x = 0; x < width; x++)
+{
+int i0 = z * vertsX + x;
+int i1 = i0 + 1;
+int i2 = i0 + vertsX;
+int i3 = i2 + 1;
+
+
+tris[tIdx++] = i0;
+tris[tIdx++] = i2;
+tris[tIdx++] = i1;
+
+
+tris[tIdx++] = i1;
+tris[tIdx++] = i2;
+tris[tIdx++] = i3;
+}
+}
+
+Mesh m = new Mesh();
+m.indexFormat = verts.Length > 65535 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+m.vertices = verts;
+m.triangles = tris;
+m.uv = uv;
+m.colors = colors;
+m.RecalculateNormals();
+m.RecalculateBounds();
+return m;
+}
+
+Color HeightToGradient(float t)
+{
+switch (colorMode)
+{
+case 1: // сніжний
+return Color.Lerp(new Color(0.6f, 0.7f, 0.8f), Color.white, t);
+case 2: // пустеля
+return Color.Lerp(new Color(0.8f, 0.7f, 0.4f), new Color(0.9f, 0.85f, 0.5f), t);
+default: // стандарт
+if (t < 0.35f)
+return Color.Lerp(new Color(0.05f, 0.25f, 0.05f), new Color(0.2f, 0.6f, 0.2f), t / 0.35f);
+else if (t < 0.7f)
+return Color.Lerp(new Color(0.2f, 0.6f, 0.2f), new Color(0.5f, 0.4f, 0.25f), (t - 0.35f) / 0.35f);
+else
+return Color.Lerp(new Color(0.5f, 0.4f, 0.25f), Color.white, (t - 0.7f) / 0.3f);
+}
+}
+
+void CreateOrUpdateWireframe(Mesh sourceMesh)
+{
+if (wireframeObj == null)
+{
+wireframeObj = new GameObject("Wireframe");
+wireframeObj.transform.SetParent(transform, false);
+wfFilter = wireframeObj.AddComponent<MeshFilter>();
+wfRenderer = wireframeObj.AddComponent<MeshRenderer>();
+wireframeObj.transform.localPosition = Vector3.zero;
+}
+
+// створення унікального набору ребер
+Vector3[] verts = sourceMesh.vertices;
+int[] tris = sourceMesh.triangles;
+
+
+var edgeSet = new HashSet<Edge>();
+for (int i = 0; i < tris.Length; i += 3)
+{
+int a = tris[i];
+int b = tris[i + 1];
+int c = tris[i + 2];
+AddEdge(edgeSet, a, b);
+AddEdge(edgeSet, b, c);
+AddEdge(edgeSet, c, a);
+}
+
+// створення лінійної сітки за допомогою топології Lines
+Mesh lineMesh = new Mesh();
+List<Vector3> lineVerts = new List<Vector3>();
+List<int> lineIndices = new List<int>();
+int idx = 0;
+foreach (var e in edgeSet)
+{
+lineVerts.Add(verts[e.v1]);
+lineVerts.Add(verts[e.v2]);
+lineIndices.Add(idx++);
+lineIndices.Add(idx++);
+}
+
+
+lineMesh.SetVertices(lineVerts);
+lineMesh.SetIndices(lineIndices.ToArray(), MeshTopology.Lines, 0);
+lineMesh.RecalculateBounds();
+
+
+wfFilter.sharedMesh = lineMesh;
+if (lineMaterial != null) wfRenderer.sharedMaterial = lineMaterial;
+}
+
+void AddEdge(HashSet<Edge> set, int a, int b)
+{
+Edge e = new Edge(a, b);
+if (set.Contains(e)) return;
+set.Add(e);
+}
+
+struct Edge
+{
+public int v1, v2;
+public Edge(int a, int b)
+{
+if (a < b) { v1 = a; v2 = b; }
+else { v1 = b; v2 = a; }
+}
+}
+
+void UpdateWireframeVisibility()
+{
+if (wireframeObj != null)
+wireframeObj.SetActive(showWireframe);
+}
+
+void OnValidate()
+{
+if (!Application.isPlaying)
+{
+try { Generate(); } catch { }
+}
+else
+{
+UpdateWireframeVisibility();
+}
+}
+}

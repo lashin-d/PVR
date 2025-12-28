@@ -1,0 +1,59 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public static class BranchMeshGenerator
+{
+    public static Mesh CreateCylinderMesh(Vector3 start, Vector3 end, float startRadius, float endRadius, int radialSegments = 12)
+    {
+        Mesh m = new Mesh();
+        Vector3 axis = end - start;
+        float height = axis.magnitude;
+        if (height <= 1e-6f) return m;
+
+        var verts = new List<Vector3>();
+        var normals = new List<Vector3>();
+        var uvs = new List<Vector2>();
+        var tris = new List<int>();
+        Vector3 up = axis.normalized;
+        Vector3 forward = Vector3.Slerp(up, Vector3.up, 0.0f);
+        Vector3 side = Vector3.Cross(up, forward);
+        if (side.sqrMagnitude < 1e-6f) side = Vector3.Cross(up, Vector3.right);
+        side.Normalize();
+        Vector3 forwardFixed = Vector3.Cross(side, up).normalized;
+
+        for (int i = 0; i < radialSegments; i++)
+        {
+            float theta = (2f * Mathf.PI * i) / radialSegments;
+            float cx = Mathf.Cos(theta);
+            float cz = Mathf.Sin(theta);
+            Vector3 dir = side * cx + forwardFixed * cz;
+            verts.Add(start + dir * startRadius);
+            normals.Add(dir);
+            uvs.Add(new Vector2(i / (float)radialSegments, 0));
+            verts.Add(start + axis + dir * endRadius);
+            normals.Add(dir);
+            uvs.Add(new Vector2(i / (float)radialSegments, 1));
+        }
+
+        for (int i = 0; i < radialSegments; i++)
+        {
+            int i0 = i * 2;
+            int i1 = ((i + 1) % radialSegments) * 2;
+
+            tris.Add(i0);
+            tris.Add(i0 + 1);
+            tris.Add(i1 + 1);
+
+            tris.Add(i0);
+            tris.Add(i1 + 1);
+            tris.Add(i1);
+        }
+
+        m.SetVertices(verts);
+        m.SetNormals(normals);
+        m.SetUVs(0, uvs);
+        m.SetTriangles(tris, 0);
+        m.RecalculateBounds();
+        return m;
+    }
+}

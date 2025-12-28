@@ -1,0 +1,181 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+public class LSystemInterpreter : MonoBehaviour
+{
+    [Header("Generator")]
+    public LSystemGenerator generator;
+    public int iterations = 4;
+
+    [Header("Turtle")]
+    public float baseLength = 1.0f;
+    [Range(0f, 1f)] public float lengthVariance = 0.2f;
+    public float baseAngle = 25f;
+    public float angleVariance = 10f;
+
+    [Header("Branch mesh")]
+    public bool generateMeshBranches = true;
+    public Material branchMaterial;
+    public float startRadius = 0.2f;
+    public float radiusDecay = 0.6f;
+    public int radialSegments = 10;
+
+    [Header("Leaves")]
+    public Material leafMaterial;
+    public float leafSize = 0.25f;
+    public float leafProbability = 0.5f;
+
+    [Header("Display")]
+    public bool useLineRendererFallback = false;
+    public Material lineMaterial;
+    public bool showWireframe = false;
+
+    private Transform container;
+
+    [ContextMenu("Generate L-System")]
+    public void Generate()
+    {
+        Clear();
+
+        if (generator == null)
+        {
+            Debug.LogError("LSystemGenerator asset not assigned!");
+            return;
+        }
+
+        string system = generator.Generate(iterations);
+        Interpret(system);
+    }
+
+    public void Clear()
+    {
+        if (container != null) DestroyImmediate(container.gameObject);
+        container = new GameObject("LSystemContainer").transform;
+        container.SetParent(transform, false);
+    }
+
+    struct TurtleState
+    {
+        public Vector3 pos;
+        public Quaternion rot;
+        public float radius;
+        public TurtleState Clone() => new TurtleState { pos = pos, rot = rot, radius = radius };
+    }
+
+    void Interpret(string system)
+    {
+        Stack<TurtleState> stack = new Stack<TurtleState>();
+        TurtleState state = new TurtleState
+        {
+            pos = transform.position,
+            rot = transform.rotation,
+            radius = startRadius
+        };
+
+        Vector3 lastPos = state.pos;
+
+        LineRenderer lr = null;
+        if (useLineRendererFallback)
+        {
+            var go = new GameObject("LSystem_Lines");
+            go.transform.SetParent(container, false);
+            lr = go.AddComponent<LineRenderer>();
+            lr.material = lineMaterial;
+            lr.widthMultiplier = startRadius * 0.8f;
+            lr.positionCount = 0;
+            lr.useWorldSpace = false;
+        }
+
+        foreach (char c in system)
+        {
+            if (c == 'F')
+            {
+                float len = baseLength * Random.Range(1f - lengthVariance, 1f + lengthVariance);
+                Vector3 newPos = state.pos + state.rot * (Vector3.up * len);
+
+                if (useLineRendererFallback)
+                {
+                    lr.positionCount += 2;
+                    lr.SetPosition(lr.positionCount - 2, state.pos);
+                    lr.SetPosition(lr.positionCount - 1, newPos);
+                }
+                else if (generateMeshBranches)
+                {
+                    Mesh mesh = BranchMeshGenerator.CreateCylinderMesh(state.pos, newPos, state.radius, state.radius * radiusDecay, radialSegments);
+                    GameObject branch = new GameObject("Branch");
+                    branch.transform.SetParent(container, true);
+                    var mf = branch.AddComponent<MeshFilter>();
+                    mf.sharedMesh = mesh;
+                    var mr = branch.AddComponent<MeshRenderer>();
+                    mr.sharedMaterial = branchMaterial;
+                    if (showWireframe)
+                    {
+                        var lrObj = new GameObject("wire");
+                        lrObj.transform.SetParent(branch.transform, false);
+                        var l = lrObj.AddComponent<LineRenderer>();
+                        l.material = lineMaterial;
+                        l.positionCount = 2;
+                        l.SetPosition(0, state.pos);
+                        l.SetPosition(1, newPos);
+                        l.widthMultiplier = Mathf.Max(0.01f, state.radius * 0.2f);
+                    }
+                }
+
+                if (Random.value < leafProbability)
+                {
+                    var leafRot = Quaternion.LookRotation((state.rot * Vector3.up).normalized);
+                    LeafGenerator.CreateLeafObject(newPos, leafRot, container, leafMaterial, leafSize);
+                }
+
+                state.pos = newPos;
+                state.radius *= radiusDecay;
+            }
+            else if (c == '+')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(0, 0, a);
+            }
+            else if (c == '-')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(0, 0, -a);
+            }
+            else if (c == '&')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(a, 0, 0);
+            }
+            else if (c == '^')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(-a, 0, 0);
+            }
+            else if (c == '\\')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(0, a, 0);
+            }
+            else if (c == '/')
+            {
+                float a = baseAngle + Random.Range(-angleVariance, angleVariance);
+                state.rot *= Quaternion.Euler(0, -a, 0);
+            }
+            else if (c == '[')
+            {
+                stack.Push(state.Clone());
+            }
+            else if (c == ']')
+            {
+                if (stack.Count > 0) state = stack.Pop();
+            }
+            else if (c == 'L')
+            {
+                var leafRot = Quaternion.LookRotation((state.rot * Vector3.up).normalized);
+                LeafGenerator.CreateLeafObject(state.pos, leafRot, container, leafMaterial, leafSize);
+            }
+
+            lastPos = state.pos;
+        }
+    }
+}
+

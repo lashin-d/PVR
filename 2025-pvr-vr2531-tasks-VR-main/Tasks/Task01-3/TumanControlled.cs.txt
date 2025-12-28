@@ -1,0 +1,20 @@
+TumanControlled.cs)
+using UnityEngine;
+
+public class TumanControlled : MonoBehaviour
+{
+    [Range(0, 0.1f)] public float fogDensity = 0.02f;
+    public Color fogColor = new Color(0.7f, 0.8f, 0.9f);
+
+    void Start()
+    {
+        RenderSettings.fog = true;
+        RenderSettings.fogMode = FogMode.ExponentialSquared;
+    }
+
+    void Update()
+    {
+        RenderSettings.fogDensity = fogDensity;
+        RenderSettings.fogColor = fogColor;
+    }
+}

@@ -1,0 +1,64 @@
+using System.Collections.Generic;
+using System.Text;
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "LSystemGenerator", menuName = "Procedural/LSystemGenerator")]
+public class LSystemGenerator : ScriptableObject
+{
+    [System.Serializable]
+    public class RuleVariant
+    {
+        public string output;
+        [Range(0f, 1f)] public float probability = 1f;
+    }
+
+    [System.Serializable]
+    public class Rule
+    {
+        public char key;
+        public List<RuleVariant> variants = new List<RuleVariant>();
+    }
+
+    [Header("L-System")]
+    public string axiom = "F";
+    public List<Rule> rules = new List<Rule>();
+
+    public string Generate(int iterations)
+    {
+        string current = axiom;
+        for (int it = 0; it < iterations; it++)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in current)
+            {
+                Rule r = rules.Find(x => x.key == c);
+                if (r != null && r.variants.Count > 0)
+                {
+                    sb.Append(ApplyStochasticRule(r.variants));
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            current = sb.ToString();
+        }
+        return current;
+    }
+
+    string ApplyStochasticRule(List<RuleVariant> variants)
+    {
+        float sum = 0f;
+        foreach (var v in variants) sum += v.probability;
+        if (sum <= 0f) return variants[0].output;
+
+        float r = Random.value * sum;
+        float acc = 0f;
+        foreach (var v in variants)
+        {
+            acc += v.probability;
+            if (r <= acc) return v.output;
+        }
+        return variants[variants.Count - 1].output;
+    }
+}

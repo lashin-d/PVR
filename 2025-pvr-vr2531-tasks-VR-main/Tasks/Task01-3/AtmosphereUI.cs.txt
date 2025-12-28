@@ -1,0 +1,36 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class AtmosphereUI : MonoBehaviour
+{
+    public SkyManager sky;
+    public TumanControlled fog;
+    public CloudBase[] clouds;
+
+    public Slider timeSlider;
+    public Slider fogSlider;
+    public Slider cloudSpeedSlider;
+
+    void Start()
+    {
+        timeSlider.onValueChanged.AddListener(OnTimeChanged);
+        fogSlider.onValueChanged.AddListener(OnFogChanged);
+        cloudSpeedSlider.onValueChanged.AddListener(OnCloudSpeedChanged);
+    }
+
+    void OnTimeChanged(float val)
+    {
+        sky.timeOfDay = val;
+    }
+
+    void OnFogChanged(float val)
+    {
+        fog.fogDensity = val;
+    }
+
+    void OnCloudSpeedChanged(float val)
+    {
+        foreach (var c in clouds)
+            c.speed = val;
+    }
+}

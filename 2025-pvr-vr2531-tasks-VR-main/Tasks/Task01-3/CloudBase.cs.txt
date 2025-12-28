@@ -1,0 +1,24 @@
+using UnityEngine;
+
+public class CloudBase : MonoBehaviour
+{
+    public float speed = 0.5f;
+    protected Material mat;
+
+    protected virtual void Start()
+    {
+        mat = GetComponent<MeshRenderer>().material;
+    }
+
+    protected virtual void Update()
+    {
+        Animate();
+    }
+
+    protected void Animate()
+    {
+        Vector2 offset = mat.mainTextureOffset;
+        offset.x += Time.deltaTime * speed * 0.02f;
+        mat.mainTextureOffset = offset;
+    }
+}

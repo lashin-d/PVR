@@ -1,0 +1,29 @@
+using UnityEngine;
+
+public class SkyManager : MonoBehaviour
+{
+    [Range(0, 24)] public float timeOfDay = 12f; // час (0–24)
+    public Light sun;
+    public Gradient skyColor;  // градієнт кольору неба
+    public Gradient ambientColor; // цвет освітлення
+
+    void Update()
+    {
+        UpdateSunPosition();
+        UpdateLighting();
+    }
+
+    void UpdateSunPosition()
+    {
+        // Обертання сонця цілодобово
+        float rotation = (timeOfDay / 24f) * 360f - 90f;
+        sun.transform.rotation = Quaternion.Euler(rotation, 170, 0);
+    }
+
+    void UpdateLighting()
+    {
+        RenderSettings.ambientLight = ambientColor.Evaluate(timeOfDay / 24f);
+        Camera.main.backgroundColor = skyColor.Evaluate(timeOfDay / 24f);
+        sun.intensity = Mathf.Clamp01(Mathf.Cos((timeOfDay - 12) / 12f * Mathf.PI));
+    }
+}

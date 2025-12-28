@@ -1,0 +1,39 @@
+using UnityEngine;
+using UnityEngine.UI;
+
+public class WaterController : MonoBehaviour
+{
+    public Material waterMaterial;
+
+    [Header("UI Elements")]
+    public Slider transparencySlider;
+    public Slider depthSlider;
+
+    private float baseHeight = 0f;
+
+    void Start()
+    {
+        if (waterMaterial != null)
+        {
+            transparencySlider.value = waterMaterial.GetFloat("_Transparency");
+        }
+
+        baseHeight = transform.position.y;
+        transparencySlider.onValueChanged.AddListener(OnTransparencyChanged);
+        depthSlider.onValueChanged.AddListener(OnDepthChanged);
+    }
+
+    // Регулювання прозорості води
+    public void OnTransparencyChanged(float value)
+    {
+        if (waterMaterial != null)
+            waterMaterial.SetFloat("_Transparency", value);
+    }
+
+    // Регулювання глибини води
+    public void OnDepthChanged(float value)
+    {
+        Debug.Log($"Depth changed: {value}");
+        transform.position = new Vector3(transform.position.x, baseHeight + value, transform.position.z);
+    }
+}
