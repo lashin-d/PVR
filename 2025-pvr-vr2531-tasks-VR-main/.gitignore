@@ -1,0 +1,55 @@
+.utmp/
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# Логи та кеш IDE
+*.log
+.vs/
+.gradle/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.DotSettings.user
+
+# Unity generated meta files та інші службові файли
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+sysinfo.txt
+mono_crash.*
+
+# Збірки та пакети
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# MemoryCaptures та Recordings (можуть бути великими та містити конфіденційні дані)
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Addressables
+/[Aa]ssets/AddressableAssetsData/*/*.bin*
+/[Aa]ssets/Addressables_Temp*
+/[Aa]ssets/StreamingAssets/aa*
+
+# Visual Scripting auto-generated files
+/[Aa]ssets/Unity.VisualScripting.Generated/
+
+# Blender backup files
+*.blend1
+*.blend1.meta
+
+# Автогенеровані сцени тестів
+/[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
